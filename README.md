@@ -1,4 +1,4 @@
-# OIM 3641 Spring 2026 Class Repository`
+# OIM 3641 Spring 2026 Class Repository
 
 All class demonstration files and problem set solutions will be found here.
 
