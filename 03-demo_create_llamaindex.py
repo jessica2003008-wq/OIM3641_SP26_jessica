@@ -19,6 +19,6 @@ if documents:
     print(f"Successfully parsed beginning with {documents[0].text[:100]}: ")
 else:
     print("no document(s) to parse")
-index = LlamaCloudIndex.from_documents(documents, name= "AI_Proposal")
+index = LlamaCloudIndex.from_documents(documents, name= "Jessica_Index_Test")
 
 print(index.id)

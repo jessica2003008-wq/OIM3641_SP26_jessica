@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from google import genai
+import os
 import re
 
 load_dotenv()
@@ -26,7 +27,6 @@ print(code_content)
 with open("loan_calc.py", "w") as f:
     f.write(code_content)
     f.close()
-
 
 
 

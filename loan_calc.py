@@ -1,46 +1,44 @@
+python
+import math
 
-def calculate_loan_payment(interest: float, term: float, present_value: float) -> float:
+def calculate_loan_payment(interest, term, present_value):
     """
     Calculates the monthly payment for a loan.
 
     Args:
-        interest (float): The annual interest rate as a percentage (e.g., 5 for 5%).
-        term (float): The loan term in years.
+        interest (float): The annual interest rate (e.g., 0.05 for 5%).
+        term (int): The loan term in years.
         present_value (float): The principal loan amount (present value).
 
     Returns:
-        float: The monthly loan payment.
+        float: The calculated monthly loan payment.
     """
-    if interest < 0:
-        raise ValueError("Interest rate cannot be negative.")
-    if term <= 0:
-        raise ValueError("Loan term must be greater than zero.")
-    if present_value <= 0:
-        raise ValueError("Present value must be greater than zero.")
+    # Convert annual interest rate to monthly
+    monthly_interest_rate = interest / 12
 
-    # Convert annual interest rate (percentage) to monthly decimal rate
-    # Example: 5% annual -> 0.05 / 12 monthly
-    monthly_interest_rate = (interest / 100) / 12
+    # Convert term in years to total number of payments
+    num_payments = term * 12
 
-    # Convert loan term from years to months
-    number_of_payments = term * 12
-
+    # Handle the case of zero interest rate
     if monthly_interest_rate == 0:
-        # If the interest rate is 0, the payment is simply principal divided by the number of payments.
-        monthly_payment = present_value / number_of_payments
-    else:
-        # Formula for loan payment (annuity payment formula):
-        # M = P [ i(1 + i)^n ] / [ (1 + i)^n � 1]
-        # Where:
-        # M = Monthly payment
-        # P = Principal loan amount (present_value)
-        # i = Monthly interest rate (monthly_interest_rate)
-        # n = Number of payments (number_of_payments)
-        
-        # This can also be written as:
-        # M = P * (i * (1 + i)**n) / (((1 + i)**n) - 1)
-        
-        factor = (1 + monthly_interest_rate)**number_of_payments
-        monthly_payment = present_value * (monthly_interest_rate * factor) / (factor - 1)
+        if num_payments == 0:
+            return 0.0 # Or raise an error, depending on desired behavior for a 0-term loan
+        return present_value / num_payments
+
+    # Calculate monthly payment using the standard formula:
+    # M = P [ i(1 + i)^n ] / [ (1 + i)^n – 1]
+    # where P = present_value, i = monthly_interest_rate, n = num_payments
+    
+    # Calculate (1 + i)^n
+    pow_factor = math.pow(1 + monthly_interest_rate, num_payments)
+    
+    # Calculate the numerator: i * (1 + i)^n
+    numerator = monthly_interest_rate * pow_factor
+    
+    # Calculate the denominator: (1 + i)^n - 1
+    denominator = pow_factor - 1
+
+    # Calculate the monthly payment
+    monthly_payment = present_value * (numerator / denominator)
 
     return monthly_payment
