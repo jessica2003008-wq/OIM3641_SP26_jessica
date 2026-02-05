@@ -29,3 +29,23 @@ This repository contains my in-class activities, assignments, and experiments fo
 ├── data/               # datasets used for experiments
 ├── requirements.txt    # project dependencies
 └── README.md           # repository overview
+```
+
+## Install Instructions
+
+1. Clone the repository:
+
+git clone https://github.com/jessica2003008-wq/OIM3641_SP26_jessica.git
+
+2. Navigate into the project directory:
+
+cd OIM3641_SP26_jessica
+
+3. Install dependencies:
+
+pip install -r requirements.txt
+
+4. Run scripts or notebooks as needed using Python or Jupyter Notebook.
+
+## Contact / Connect
+- LinkedIn: https://www.linkedin.com/in/jessicawang1
