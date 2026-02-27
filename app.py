@@ -1,103 +1,74 @@
 import os
+from pathlib import Path
 
 import streamlit as st
-from dotenv import load_dotenv
-from llama_index.core import Settings, SimpleDirectoryReader, StorageContext, VectorStoreIndex, load_index_from_storage
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
-from llama_index.llms.google_genai import GoogleGenAI
+
+DATA_DIR = Path("data")
+API_ENV = "GOOGLE_API_KEY"
 
 
-DATA_DIR = "data"
-PERSIST_DIR = "storage"
-
-
-MAX_DOCS_FOR_FIRST_BUILD = 200
-
-
-def init_settings() -> None:
-    """Configure llama-index to use Gemini (not OpenAI)."""
-    Settings.llm = GoogleGenAI(model="gemini-2.5-flash")
-    Settings.embed_model = GoogleGenAIEmbedding(model_name="models/gemini-embedding-001")
-    Settings.node_parser = SentenceSplitter(chunk_size=1024, chunk_overlap=100)
-
-
-@st.cache_resource(show_spinner=False)
-def build_or_load_index() -> VectorStoreIndex:
-    """
-    Build the index once (calls Gemini embeddings), persist to ./storage,
-    then load from disk on later runs to avoid re-embedding and 429 errors.
-    """
-    if os.path.exists(PERSIST_DIR) and os.listdir(PERSIST_DIR):
-        storage_context = StorageContext.from_defaults(persist_dir=PERSIST_DIR)
-        return load_index_from_storage(storage_context)
-
-    if not os.path.isdir(DATA_DIR):
-        raise FileNotFoundError(f"Missing '{DATA_DIR}/' directory. Put the handbook file inside it.")
-
-    documents = SimpleDirectoryReader(DATA_DIR).load_data()
-    if not documents:
-        raise FileNotFoundError(f"No files found in '{DATA_DIR}/'. Add the Babson handbook file there.")
-
-    documents = documents[:MAX_DOCS_FOR_FIRST_BUILD]
-
-    index = VectorStoreIndex.from_documents(documents)
-    index.storage_context.persist(persist_dir=PERSIST_DIR)
-    return index
-
-
-def rag_answer(index: VectorStoreIndex, user_query: str) -> str:
-    """Run a RAG query against the handbook index and return the final answer."""
-    query_engine = index.as_query_engine(similarity_top_k=4)
-    response = query_engine.query(user_query)
-    return str(response)
-
-
-def main() -> None:
-    st.set_page_config(page_title="Babson Handbook RAG Chatbot", page_icon="📘")
-    st.title("📘 Babson Student Handbook — RAG Chatbot (Gemini + LlamaIndex)")
-
-    load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        st.error("Missing GEMINI_API_KEY. Add it to a .env file in your project root.")
+def require(condition: bool, msg: str) -> None:
+    """Small guard: show a helpful message and stop the app."""
+    if not condition:
+        st.error(msg)
         st.stop()
 
-    os.environ["GEMINI_API_KEY"] = api_key
-    init_settings()
 
-    with st.spinner("Loading handbook + building/loading index..."):
+@st.cache_resource(show_spinner=True)
+def build_engine():
+    """Build the RAG engine (cached). Fast-fail on errors."""
+    try:
+        from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+        from llama_index.core.settings import Settings
+        from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
+        from llama_index.llms.google_genai import GoogleGenAI
+
+        Settings.llm = GoogleGenAI(model="gemini-1.5-flash")
+        Settings.embed_model = GoogleGenAIEmbedding(model_name="text-embedding-004")
+
+        docs = SimpleDirectoryReader(input_dir=str(DATA_DIR)).load_data()
+        require(len(docs) > 0, "No documents were loaded from data/. Put at least one readable file in data/.")
+
+        index = VectorStoreIndex.from_documents(docs)
+        return index.as_query_engine(similarity_top_k=4)
+
+    except Exception:
+        # friendly fast-fail message (no wall of stack trace)
+        raise RuntimeError(
+            "RAG engine failed to initialize. Check: API key, installed packages, and that your file is readable."
+        )
+
+
+def main():
+    st.title("RAG Chatbot (Robust MVP)")
+
+    # 1) config + data checks (minimal)
+    api_key = os.getenv(API_ENV, "").strip()
+    require(bool(api_key), f"Missing API key: set environment variable `{API_ENV}`.")
+
+    require(DATA_DIR.exists() and DATA_DIR.is_dir(), "Missing data/ directory. Create a data/ folder in your project.")
+
+    files = [p for p in DATA_DIR.iterdir() if p.is_file()]
+    require(len(files) > 0, "data/ is empty. Add at least one file (e.g., the Babson handbook PDF).")
+
+    # 2) build RAG engine (cached) with fast-fail
+    try:
+        engine = build_engine()
+    except Exception as e:
+        st.error(str(e))
+        st.stop()
+
+    # 3) simple UI + small input guard
+    q = st.text_input("Ask a question about the document(s):")
+    if st.button("Send"):
+        q = (q or "").strip()
+        require(len(q) > 0, "Please type a question first.")
+
         try:
-            index = build_or_load_index()
-        except Exception as e:
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                st.error(
-                    "Still hitting Gemini 429 (quota/rate limit).\n\n"
-                    "Do this:\n"
-                    "1) Ensure your key has quota / billing enabled, OR\n"
-                    "2) Lower MAX_DOCS_FOR_FIRST_BUILD to 20, rerun.\n\n"
-                    "Once you successfully build the index once, ./storage will appear and future runs won't re-embed."
-                )
-                st.stop()
-            raise
+            st.write(engine.query(q))
+        except Exception:
+            st.error("Query failed. Please try again (or verify your API key / model settings).")
 
-    st.success("Index ready ✅ (cached locally in ./storage after first successful build)")
-    st.caption(
-        "Tip: Keep only the handbook file in ./data to reduce weird answers. "
-        f"Currently indexing first {MAX_DOCS_FOR_FIRST_BUILD} document chunks for the initial build."
-    )
-
-    user_query = st.text_input(
-        "Ask a question about the Babson student handbook",
-        placeholder="e.g., Can I get credit for courses taken somewhere else?",
-    )
-    submit = st.button("Submit")
-
-    if submit and user_query.strip():
-        with st.spinner("Thinking..."):
-            answer = rag_answer(index, user_query.strip())
-        st.subheader("Answer")
-        st.write(answer)
 
 if __name__ == "__main__":
     main()
