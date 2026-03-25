@@ -1,0 +1,179 @@
+<html>
+<head>
+<title>stock.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #2aacb8;}
+.s5 { color: #5f826b; font-style: italic;}
+.s6 { color: #6aab73;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+stock.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">datetime </span><span class="s0">as </span><span class="s1">dt</span>
+
+<span class="s0">import </span><span class="s1">matplotlib</span><span class="s2">.</span><span class="s1">pyplot </span><span class="s0">as </span><span class="s1">plt</span>
+<span class="s0">import </span><span class="s1">numpy </span><span class="s0">as </span><span class="s1">np</span>
+<span class="s0">import </span><span class="s1">pandas </span><span class="s0">as </span><span class="s1">pd</span>
+<span class="s0">import </span><span class="s1">yfinance </span><span class="s0">as </span><span class="s1">yf</span>
+
+<span class="s3"># STUDENT CHANGE LOG &amp; AI DISCLOSURE:</span>
+<span class="s3"># 1. Did you use an LLM (ChatGPT/Claude/etc.)? [Yes]</span>
+<span class="s3"># 2. If yes, what was your primary prompt?</span>
+<span class="s3">#    &quot;Step-by-step help to complete Stock class methods: get_data, calc_returns,</span>
+<span class="s3">#     add_technical_indicators, plot_return_dist, plot_performance, and a test main().&quot;</span>
+
+<span class="s1">DEFAULT_START </span><span class="s2">= </span><span class="s1">dt</span><span class="s2">.</span><span class="s1">date</span><span class="s2">.</span><span class="s1">isoformat</span><span class="s2">(</span><span class="s1">dt</span><span class="s2">.</span><span class="s1">date</span><span class="s2">.</span><span class="s1">today</span><span class="s2">() - </span><span class="s1">dt</span><span class="s2">.</span><span class="s1">timedelta</span><span class="s2">(</span><span class="s4">365</span><span class="s2">))</span>
+<span class="s1">DEFAULT_END </span><span class="s2">= </span><span class="s1">dt</span><span class="s2">.</span><span class="s1">date</span><span class="s2">.</span><span class="s1">isoformat</span><span class="s2">(</span><span class="s1">dt</span><span class="s2">.</span><span class="s1">date</span><span class="s2">.</span><span class="s1">today</span><span class="s2">())</span>
+
+
+<span class="s0">class </span><span class="s1">Stock</span><span class="s2">:</span>
+    <span class="s0">def </span><span class="s1">__init__</span><span class="s2">(</span><span class="s1">self</span><span class="s2">, </span><span class="s1">symbol</span><span class="s2">, </span><span class="s1">start</span><span class="s2">=</span><span class="s1">DEFAULT_START</span><span class="s2">, </span><span class="s1">end</span><span class="s2">=</span><span class="s1">DEFAULT_END</span><span class="s2">):</span>
+        <span class="s1">self</span><span class="s2">.</span><span class="s1">symbol </span><span class="s2">= </span><span class="s1">symbol</span>
+        <span class="s1">self</span><span class="s2">.</span><span class="s1">start </span><span class="s2">= </span><span class="s1">start</span>
+        <span class="s1">self</span><span class="s2">.</span><span class="s1">end </span><span class="s2">= </span><span class="s1">end</span>
+        <span class="s1">self</span><span class="s2">.</span><span class="s1">data </span><span class="s2">= </span><span class="s1">self</span><span class="s2">.</span><span class="s1">get_data</span><span class="s2">()</span>
+
+    <span class="s0">def </span><span class="s1">get_data</span><span class="s2">(</span><span class="s1">self</span><span class="s2">):</span>
+        <span class="s5">&quot;&quot;&quot; 
+        Downloads data from yfinance and triggers return calculation. 
+        - Uses a free stock data API (yfinance) 
+        - Stores results in a pandas DataFrame 
+        - Index is date and converted to pandas Datetime 
+        &quot;&quot;&quot;</span>
+        <span class="s3"># yfinance treats 'end' as exclusive; add 1 day to include the end date</span>
+        <span class="s1">end_dt </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">to_datetime</span><span class="s2">(</span><span class="s1">self</span><span class="s2">.</span><span class="s1">end</span><span class="s2">) + </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">Timedelta</span><span class="s2">(</span><span class="s1">days</span><span class="s2">=</span><span class="s4">1</span><span class="s2">)</span>
+
+        <span class="s1">df </span><span class="s2">= </span><span class="s1">yf</span><span class="s2">.</span><span class="s1">download</span><span class="s2">(</span>
+            <span class="s1">self</span><span class="s2">.</span><span class="s1">symbol</span><span class="s2">,</span>
+            <span class="s1">start</span><span class="s2">=</span><span class="s1">self</span><span class="s2">.</span><span class="s1">start</span><span class="s2">,</span>
+            <span class="s1">end</span><span class="s2">=</span><span class="s1">end_dt</span><span class="s2">.</span><span class="s1">strftime</span><span class="s2">(</span><span class="s6">&quot;%Y-%m-%d&quot;</span><span class="s2">),</span>
+            <span class="s1">progress</span><span class="s2">=</span><span class="s0">False</span>
+        <span class="s2">)</span>
+
+        <span class="s0">if </span><span class="s1">df </span><span class="s0">is None or </span><span class="s1">df</span><span class="s2">.</span><span class="s1">empty</span><span class="s2">:</span>
+            <span class="s0">raise </span><span class="s1">ValueError</span><span class="s2">(</span>
+                <span class="s6">f&quot;No data returned for symbol '</span><span class="s0">{</span><span class="s1">self</span><span class="s2">.</span><span class="s1">symbol</span><span class="s0">}</span><span class="s6">' &quot;</span>
+                <span class="s6">f&quot;from </span><span class="s0">{</span><span class="s1">self</span><span class="s2">.</span><span class="s1">start</span><span class="s0">} </span><span class="s6">to </span><span class="s0">{</span><span class="s1">self</span><span class="s2">.</span><span class="s1">end</span><span class="s0">}</span><span class="s6">.&quot;</span>
+            <span class="s2">)</span>
+
+        <span class="s3"># Ensure index is datetime</span>
+        <span class="s1">df</span><span class="s2">.</span><span class="s1">index </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">to_datetime</span><span class="s2">(</span><span class="s1">df</span><span class="s2">.</span><span class="s1">index</span><span class="s2">)</span>
+        <span class="s1">df</span><span class="s2">.</span><span class="s1">index</span><span class="s2">.</span><span class="s1">name </span><span class="s2">= </span><span class="s6">&quot;date&quot;</span>
+
+        <span class="s3"># Enrich with returns columns</span>
+        <span class="s1">self</span><span class="s2">.</span><span class="s1">calc_returns</span><span class="s2">(</span><span class="s1">df</span><span class="s2">)</span>
+
+        <span class="s0">return </span><span class="s1">df</span>
+
+    <span class="s0">def </span><span class="s1">calc_returns</span><span class="s2">(</span><span class="s1">self</span><span class="s2">, </span><span class="s1">df</span><span class="s2">):</span>
+        <span class="s5">&quot;&quot;&quot; 
+        Adds 'change' and 'instant_return' columns to the dataframe. 
+        Requirement: Use vectorized pandas operations, not loops. 
+ 
+        change: 
+            difference in Close vs previous day's Close 
+        instant_return: 
+            daily instantaneous return = log(Close).diff().round(4) 
+        &quot;&quot;&quot;</span>
+        <span class="s0">if </span><span class="s6">&quot;Close&quot; </span><span class="s0">not in </span><span class="s1">df</span><span class="s2">.</span><span class="s1">columns</span><span class="s2">:</span>
+            <span class="s0">raise </span><span class="s1">ValueError</span><span class="s2">(</span><span class="s6">&quot;Expected 'Close' column in downloaded data.&quot;</span><span class="s2">)</span>
+
+        <span class="s1">df</span><span class="s2">[</span><span class="s6">&quot;change&quot;</span><span class="s2">] = </span><span class="s1">df</span><span class="s2">[</span><span class="s6">&quot;Close&quot;</span><span class="s2">].</span><span class="s1">diff</span><span class="s2">()</span>
+        <span class="s1">df</span><span class="s2">[</span><span class="s6">&quot;instant_return&quot;</span><span class="s2">] = </span><span class="s1">np</span><span class="s2">.</span><span class="s1">log</span><span class="s2">(</span><span class="s1">df</span><span class="s2">[</span><span class="s6">&quot;Close&quot;</span><span class="s2">]).</span><span class="s1">diff</span><span class="s2">().</span><span class="s1">round</span><span class="s2">(</span><span class="s4">4</span><span class="s2">)</span>
+
+    <span class="s0">def </span><span class="s1">add_technical_indicators</span><span class="s2">(</span><span class="s1">self</span><span class="s2">, </span><span class="s1">windows</span><span class="s2">=(</span><span class="s4">20</span><span class="s2">, </span><span class="s4">50</span><span class="s2">)):</span>
+        <span class="s5">&quot;&quot;&quot; 
+        Add Simple Moving Averages (SMA) for the given windows to the internal DataFrame. 
+        Produce a plot showing the closing price and SMAs. 
+        &quot;&quot;&quot;</span>
+        <span class="s0">if </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data </span><span class="s0">is None or </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">empty</span><span class="s2">:</span>
+            <span class="s0">raise </span><span class="s1">ValueError</span><span class="s2">(</span><span class="s6">&quot;No data found. Call get_data() first.&quot;</span><span class="s2">)</span>
+
+        <span class="s0">for </span><span class="s1">w </span><span class="s0">in </span><span class="s1">windows</span><span class="s2">:</span>
+            <span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">[</span><span class="s6">f&quot;sma_</span><span class="s0">{</span><span class="s1">w</span><span class="s0">}</span><span class="s6">&quot;</span><span class="s2">] = </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">[</span><span class="s6">&quot;Close&quot;</span><span class="s2">].</span><span class="s1">rolling</span><span class="s2">(</span><span class="s1">window</span><span class="s2">=</span><span class="s1">w</span><span class="s2">).</span><span class="s1">mean</span><span class="s2">()</span>
+
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">figure</span><span class="s2">(</span><span class="s1">figsize</span><span class="s2">=(</span><span class="s4">12</span><span class="s2">, </span><span class="s4">6</span><span class="s2">))</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">plot</span><span class="s2">(</span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">index</span><span class="s2">, </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">[</span><span class="s6">&quot;Close&quot;</span><span class="s2">], </span><span class="s1">label</span><span class="s2">=</span><span class="s6">&quot;Close&quot;</span><span class="s2">)</span>
+
+        <span class="s0">for </span><span class="s1">w </span><span class="s0">in </span><span class="s1">windows</span><span class="s2">:</span>
+            <span class="s1">plt</span><span class="s2">.</span><span class="s1">plot</span><span class="s2">(</span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">index</span><span class="s2">, </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">[</span><span class="s6">f&quot;sma_</span><span class="s0">{</span><span class="s1">w</span><span class="s0">}</span><span class="s6">&quot;</span><span class="s2">], </span><span class="s1">label</span><span class="s2">=</span><span class="s6">f&quot;SMA </span><span class="s0">{</span><span class="s1">w</span><span class="s0">}</span><span class="s6">&quot;</span><span class="s2">)</span>
+
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">title</span><span class="s2">(</span><span class="s6">f&quot;</span><span class="s0">{</span><span class="s1">self</span><span class="s2">.</span><span class="s1">symbol</span><span class="s0">} </span><span class="s6">Close Price with Moving Averages&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">xlabel</span><span class="s2">(</span><span class="s6">&quot;Date&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">ylabel</span><span class="s2">(</span><span class="s6">&quot;Price ($)&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">grid</span><span class="s2">(</span><span class="s0">True</span><span class="s2">, </span><span class="s1">alpha</span><span class="s2">=</span><span class="s4">0.3</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">legend</span><span class="s2">()</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">tight_layout</span><span class="s2">()</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">show</span><span class="s2">()</span>
+
+    <span class="s0">def </span><span class="s1">plot_return_dist</span><span class="s2">(</span><span class="s1">self</span><span class="s2">, </span><span class="s1">bins</span><span class="s2">=</span><span class="s4">50</span><span class="s2">):</span>
+        <span class="s5">&quot;&quot;&quot; 
+        Plot a well formatted histogram of the instantaneous returns. 
+        &quot;&quot;&quot;</span>
+        <span class="s0">if </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data </span><span class="s0">is None or </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">empty</span><span class="s2">:</span>
+            <span class="s0">raise </span><span class="s1">ValueError</span><span class="s2">(</span><span class="s6">&quot;No data found. Call get_data() first.&quot;</span><span class="s2">)</span>
+        <span class="s0">if </span><span class="s6">&quot;instant_return&quot; </span><span class="s0">not in </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">columns</span><span class="s2">:</span>
+            <span class="s0">raise </span><span class="s1">ValueError</span><span class="s2">(</span><span class="s6">&quot;Missing 'instant_return'. Run get_data() first.&quot;</span><span class="s2">)</span>
+
+        <span class="s1">rets </span><span class="s2">= </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">[</span><span class="s6">&quot;instant_return&quot;</span><span class="s2">].</span><span class="s1">dropna</span><span class="s2">()</span>
+
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">figure</span><span class="s2">(</span><span class="s1">figsize</span><span class="s2">=(</span><span class="s4">10</span><span class="s2">, </span><span class="s4">6</span><span class="s2">))</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">hist</span><span class="s2">(</span><span class="s1">rets</span><span class="s2">, </span><span class="s1">bins</span><span class="s2">=</span><span class="s1">bins</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">title</span><span class="s2">(</span><span class="s6">f&quot;</span><span class="s0">{</span><span class="s1">self</span><span class="s2">.</span><span class="s1">symbol</span><span class="s0">} </span><span class="s6">Instantaneous Return Distribution&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">xlabel</span><span class="s2">(</span><span class="s6">&quot;Instantaneous Return (log)&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">ylabel</span><span class="s2">(</span><span class="s6">&quot;Frequency&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">grid</span><span class="s2">(</span><span class="s0">True</span><span class="s2">, </span><span class="s1">alpha</span><span class="s2">=</span><span class="s4">0.3</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">tight_layout</span><span class="s2">()</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">show</span><span class="s2">()</span>
+
+    <span class="s0">def </span><span class="s1">plot_performance</span><span class="s2">(</span><span class="s1">self</span><span class="s2">):</span>
+        <span class="s5">&quot;&quot;&quot; 
+        Plot a well formatted line graph of the stock’s performance over the range of data collected, 
+        as a percent gain/loss relative to the first Close. 
+        &quot;&quot;&quot;</span>
+        <span class="s0">if </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data </span><span class="s0">is None or </span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">empty</span><span class="s2">:</span>
+            <span class="s0">raise </span><span class="s1">ValueError</span><span class="s2">(</span><span class="s6">&quot;No data found. Call get_data() first.&quot;</span><span class="s2">)</span>
+
+        <span class="s1">base </span><span class="s2">= </span><span class="s1">float</span><span class="s2">(</span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">[</span><span class="s6">&quot;Close&quot;</span><span class="s2">].</span><span class="s1">iloc</span><span class="s2">[</span><span class="s4">0</span><span class="s2">])</span>
+        <span class="s1">perf_pct </span><span class="s2">= (</span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">[</span><span class="s6">&quot;Close&quot;</span><span class="s2">] / </span><span class="s1">base </span><span class="s2">- </span><span class="s4">1.0</span><span class="s2">) * </span><span class="s4">100.0</span>
+
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">figure</span><span class="s2">(</span><span class="s1">figsize</span><span class="s2">=(</span><span class="s4">12</span><span class="s2">, </span><span class="s4">6</span><span class="s2">))</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">plot</span><span class="s2">(</span><span class="s1">self</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">index</span><span class="s2">, </span><span class="s1">perf_pct</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">title</span><span class="s2">(</span><span class="s6">f&quot;</span><span class="s0">{</span><span class="s1">self</span><span class="s2">.</span><span class="s1">symbol</span><span class="s0">} </span><span class="s6">Performance (% Gain/Loss)&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">xlabel</span><span class="s2">(</span><span class="s6">&quot;Date&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">ylabel</span><span class="s2">(</span><span class="s6">&quot;Performance (%)&quot;</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">axhline</span><span class="s2">(</span><span class="s4">0</span><span class="s2">, </span><span class="s1">linewidth</span><span class="s2">=</span><span class="s4">1</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">grid</span><span class="s2">(</span><span class="s0">True</span><span class="s2">, </span><span class="s1">alpha</span><span class="s2">=</span><span class="s4">0.3</span><span class="s2">)</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">tight_layout</span><span class="s2">()</span>
+        <span class="s1">plt</span><span class="s2">.</span><span class="s1">show</span><span class="s2">()</span>
+
+
+<span class="s0">def </span><span class="s1">main</span><span class="s2">():</span>
+    <span class="s3"># Instantiate a test object</span>
+    <span class="s1">aapl </span><span class="s2">= </span><span class="s1">Stock</span><span class="s2">(</span><span class="s6">&quot;AAPL&quot;</span><span class="s2">)</span>
+
+    <span class="s3"># Access the data attribute</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s1">aapl</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">head</span><span class="s2">())</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s6">&quot;</span><span class="s0">\n</span><span class="s6">Columns:&quot;</span><span class="s2">, </span><span class="s1">list</span><span class="s2">(</span><span class="s1">aapl</span><span class="s2">.</span><span class="s1">data</span><span class="s2">.</span><span class="s1">columns</span><span class="s2">))</span>
+
+    <span class="s3"># Generate the two plots</span>
+    <span class="s1">aapl</span><span class="s2">.</span><span class="s1">plot_return_dist</span><span class="s2">()</span>
+    <span class="s1">aapl</span><span class="s2">.</span><span class="s1">plot_performance</span><span class="s2">()</span>
+
+    <span class="s3"># Optional extra plot (technical indicators)</span>
+    <span class="s1">aapl</span><span class="s2">.</span><span class="s1">add_technical_indicators</span><span class="s2">()</span>
+
+
+<span class="s0">if </span><span class="s1">__name__ </span><span class="s2">== </span><span class="s6">&quot;__main__&quot;</span><span class="s2">:</span>
+    <span class="s1">main</span><span class="s2">()</span></pre>
+</body>
+</html>
