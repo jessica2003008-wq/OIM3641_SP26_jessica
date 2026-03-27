@@ -27,7 +27,6 @@ def require(condition: bool, msg: str) -> None:
         st.error(msg)
         st.stop()
 
-
 def validate_config() -> None:
     """Config validation (API key + data folder + files)."""
     require(os.getenv(API_ENV, "").strip(), f"❌ Missing API key: set `{API_ENV}` (in .env or environment).")
